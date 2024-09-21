@@ -60,6 +60,36 @@
                 </div>
             </div>
         </div>
+
+        <!--Result-->
+        <div class="mb-2">
+            <div class="text-end" v-if="isRevealing(lot) && lot.participants > 0">
+                <button type="button" class="btn btn-outline-primary mb-1" @click="getResult()">
+                    Compute result
+                </button>
+            </div>
+
+            <div class="d-flex justify-content-between" v-if="computeResult">
+                <div>
+                    Lot winner:
+                </div>
+                <div>
+                    <a :href="`${$web3.blockExplorer}/address/${computeResult.winner}`" target="_blank"
+                        rel="noopener noreferrer">
+                        {{ $web3.addressShort(computeResult.winner) }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between" v-if="computeResult">
+                <div>
+                    Winner bid:
+                </div>
+                <div>
+                    {{ computeResult.lastBid }}
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -83,14 +113,18 @@ const tokenBalance = ref()
 const tokenLockedTotal = ref()
 const tokenLocked = ref()
 const checkResult = ref()
+const computeResult = ref()
+const finalResult = ref()
+const completeSig = ref()
 
 onMounted(async () => {
     getBalances()
 })
 
 watch(() => $web3.account?.address, () => {
-    
     getBalances()
+    checkResult.value = null
+    computeResult.value = null
 })
 
 const availableForBidding = computed(() => {
@@ -190,4 +224,38 @@ async function getUniqueness() {
     $loader.hide()
 }
 
+async function getResult() {
+    $loader.show()
+    try {
+        let completed
+        let prevResultData = '0x00'
+        let prevSignature = '0x00'
+        let decoded;
+        while (!completed) {
+            const r = await $web3.contract('auction').instance.connect($web3.account).computeResult(lot.id, prevResultData, prevSignature)
+            console.log(r)
+            prevResultData = r.newResultData
+            prevSignature = r.newSignature
+
+            decoded = utils.defaultAbiCoder.decode(['uint32 lotId', 'uint16 lastBid', 'address winner'], r.newResultData)
+            console.log('computeResult response', decoded.lastBid.toString(), decoded.winner)
+
+            completed = r.completed
+        }
+
+        computeResult.value = decoded
+        completeSig.value = prevSignature
+        console.log('winner', decoded)
+
+    } catch (error) {
+        console.error(error)
+        $swal.fire({
+            icon: 'error',
+            title: 'Uniqueness check error',
+            text: errorMessage(error),
+            timer: 3000,
+        });
+    }
+    $loader.hide()
+}
 </script>
