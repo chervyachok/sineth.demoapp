@@ -26,6 +26,11 @@
 					<LotActions class="border shadow-sm w-100 h-100 p-2" :lot="lot"
 						:key="`${lot.id}-${lot.fetchTimestamp}`" />
 				</div>
+
+				<div class="col-12 col-sm-8 d-flex align-items-stretch mb-2">
+					<LotParticipants class="border shadow-sm w-100 p-2" :lot="lot"
+						:key="`${lot.id}-${lot.fetchTimestamp}`" />
+				</div>
 			</div>
 		</div>
 	</div>
@@ -34,6 +39,7 @@
 <script setup>
 import LotInfo from './lot/LotInfo.vue'
 import LotActions from './lot/LotActions.vue'
+import LotParticipants from './lot/LotParticipants.vue'
 
 import { onMounted, ref, inject, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router'
