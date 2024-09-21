@@ -33,6 +33,33 @@
                 Place bid
             </button>
         </div>
+
+        <!--Uniqueness-->
+        <div class="mb-2" v-if="lot.participants > 0">
+            <div class="text-end">
+                <button type="button" class="btn btn-outline-primary" @click="getUniqueness()">
+                    Check uniqueness
+                </button>
+            </div>
+
+            <div class="d-flex justify-content-between" v-if="checkResult">
+                <div>
+                    Lot has unique bid:
+                </div>
+                <div>
+                    {{ checkResult.lot ? 'yes' : 'no' }}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between" v-if="checkResult">
+                <div>
+                    You have unique bid:
+                </div>
+                <div>
+                    {{ checkResult.account ? 'yes' : 'no' }}
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -55,7 +82,7 @@ const bidTo = ref()
 const tokenBalance = ref()
 const tokenLockedTotal = ref()
 const tokenLocked = ref()
-
+const checkResult = ref()
 
 onMounted(async () => {
     getBalances()
@@ -64,7 +91,6 @@ onMounted(async () => {
 watch(() => $web3.account?.address, () => {
     
     getBalances()
-    
 })
 
 const availableForBidding = computed(() => {
@@ -133,6 +159,35 @@ async function placeBid() {
 
 function range(start, end) {
     return Array.from({ length: end - start + 1 }, (v, k) => k + start);
+}
+
+async function getUniqueness() {
+    $loader.show()
+    try {
+        let completed
+        let cache = '0x00'
+        while (!completed) {
+            const response = await $web3.contract('auction').instance.connect($web3.account).checkUniqueness(lot.id, cache)
+            console.log('checkUniqueness response', cache)
+            cache = response.newResultData
+            completed = response.completed
+        }
+        const r = utils.defaultAbiCoder.decode(['uint32 lotId', 'uint16 lastBid', 'bool account', 'bool lot'], cache)
+        console.log('checkUniqueness result', r)
+        checkResult.value = {
+            account: r.account,
+            lot: r.lot
+        }
+    } catch (error) {
+        console.error(error)
+        $swal.fire({
+            icon: 'error',
+            title: 'Uniqueness check error',
+            text: errorMessage(error),
+            timer: 3000,
+        });
+    }
+    $loader.hide()
 }
 
 </script>
