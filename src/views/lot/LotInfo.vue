@@ -3,7 +3,6 @@
         <span class="me-2">Lot Id:</span>
         {{ lot.id }}
     </div>
-
     <div class="d-flex justify-content-between">
         <span class="me-2">Creator:</span>
         <a :href="`${$web3.blockExplorer}/address/${lot.creator}`" target="_blank" rel="noopener noreferrer">

@@ -1,0 +1,138 @@
+<template>
+    <div class="p-3" v-if="lot">
+        <div class="d-flex justify-content-between mb-1">
+            <div>
+                Bidding token balance:
+            </div>
+            <div>
+                {{ tokenBalance }}
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mb-1" v-if="isActive(lot)">
+            <div>
+                Locked by you:
+            </div>
+            <div>
+                {{ tokenLocked }}
+            </div>
+        </div>
+        <div class="d-flex justify-content-between" v-if="!isRevealing(lot) && !isClosed(lot)">
+            <div>
+                Available for bidding:
+            </div>
+            <div>
+                {{ availableForBidding }}
+            </div>
+        </div>
+
+        <!--Bid-->
+        <div class="input-group mb-2" v-if="!isRevealing(lot) && !isClosed(lot)">
+            <input type="number" class="form-control" v-model="bidFrom" step="1" min="1">
+            <input type="number" class="form-control" v-model="bidTo" step="1" min="1">
+            <button type="button" class="btn btn-outline-primary" @click="placeBid()" :disabled="!bidAllowed">
+                Place bid
+            </button>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { onMounted, ref, computed, inject, onUnmounted, watch } from 'vue';
+import errorMessage from '@/helpers/errorMessage'
+import { ethers, utils } from 'ethers'
+import { isActive, isRevealing, isClosed } from './lot.js'
+
+const { lot } = defineProps({ lot: { type: Object, required: true } })
+
+const $loader = inject('$loader')
+const $swal = inject('$swal')
+const $web3 = inject('$web3')
+const $mitt = inject('$mitt')
+
+const bidFrom = ref()
+const bidTo = ref()
+
+const tokenBalance = ref()
+const tokenLockedTotal = ref()
+const tokenLocked = ref()
+
+
+onMounted(async () => {
+    getBalances()
+})
+
+watch(() => $web3.account?.address, () => {
+    
+    getBalances()
+    
+})
+
+const availableForBidding = computed(() => {
+    if (!tokenBalance.value) return 0
+    return tokenBalance.value - tokenLocked.value
+})
+
+const bidAllowed = computed(() => {
+    if (!bidFrom.value) return false
+    if (!bidTo.value) return false
+    if (bidFrom.value > bidTo.value) return false
+    if (bidTo.value > availableForBidding.value) return false
+    return true
+})
+
+const getBalances = async () => {
+    try {
+        const data = await $web3.contract('auction').instance.connect($web3.account).getAccount()
+        tokenBalance.value = data.balance
+        tokenLockedTotal.value = data.locked
+        const lotParticipated = data.list.find(l => l.lotId.toString() == lot.id)
+        tokenLocked.value = lotParticipated ? lotParticipated.amount.toString() : 0
+        if (lot.participants > 0) getUniqueness()
+    } catch (error) {
+        console.log('getBalances error', error)
+    }
+}
+
+async function placeBid() {
+    $loader.show()
+    try {
+        let tx = await $web3.contract('auction').instance.connect($web3.account).placeBids(lot.id, range(bidFrom.value, bidTo.value))
+        $swal.fire({
+            icon: 'success',
+            title: 'Transaction sent',
+            text: 'Please wait for confirm',
+            timer: 3000,
+        });
+        const recipe = await tx.wait()
+        if (recipe.status) {
+            $swal.fire({
+                icon: 'success',
+                title: 'Transaction completed',
+                timer: 3000,
+            });
+        } else {
+            $swal.fire({
+                icon: 'error',
+                title: 'Transaction failed',
+                timer: 3000,
+            });
+        }
+        getBalances()
+        $mitt.emit('update-lot')
+    } catch (error) {
+        console.error(error)
+        $swal.fire({
+            icon: 'error',
+            title: 'Transaction error',
+            text: errorMessage(error),
+            timer: 3000,
+        });
+    }
+    $loader.hide()
+}
+
+function range(start, end) {
+    return Array.from({ length: end - start + 1 }, (v, k) => k + start);
+}
+
+</script>
