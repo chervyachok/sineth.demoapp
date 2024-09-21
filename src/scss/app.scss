@@ -1,0 +1,33 @@
+
+// functions (colors, SVGs, calc, etc)
+@import "/node_modules/bootstrap/scss/functions";
+
+// variable overrides here
+@import "./variables.scss";
+
+// required parts
+@import "/node_modules/bootstrap/scss/bootstrap.scss";
+
+a {
+	text-decoration: none !important;
+}
+
+*:focus {
+    outline: 0;
+    box-shadow: none !important;
+}
+
+// transition
+.fade-enter-active, .fade-leave-active {
+	transition: opacity 0.2s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+	opacity: 0;
+}
+
+@import './swal.scss';
+
+
+
+

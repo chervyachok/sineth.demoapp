@@ -1,0 +1,21 @@
+@import 'sweetalert2/dist/sweetalert2.min.css';
+._swal_icon {
+    margin-top: 0.5rem;
+    margin-left: 0.5rem;
+    transform: scale(0.7);
+}
+._swal_title {
+    font-size: 1.4rem;
+    padding-top: 0;    
+    text-align: start !important;
+}
+._swal_html_container {
+    margin: 0.5rem 1.5rem 0rem 1.5rem !important;
+    text-align: start !important;
+}   
+._swal_close_button {
+    padding-top: 1rem;
+    padding-right: 1rem;  
+    height: 3rem;
+   
+}
